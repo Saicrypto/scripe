@@ -82,25 +82,25 @@ export default function Home() {
       </div>
 
       {/* Main Content - Single Section */}
-      <div className="w-full flex-1 overflow-hidden">
+      <div className="w-full flex-1 overflow-hidden flex flex-col">
         {selectedCategory && !isFlipped && (
-          <div className="bg-blue-500 text-white py-2 md:py-3 px-4 md:px-6 text-center w-full z-10">
+          <div className="bg-blue-500 text-white py-2 md:py-3 px-4 md:px-6 text-center w-full z-10 flex-shrink-0">
             <h2 className="text-base md:text-lg font-semibold">{selectedCategory}</h2>
           </div>
         )}
         
         {/* Conditional Scrollable Container */}
         {selectedCategory ? (
-          // Horizontal scrolling for selected category's subcategories
-          <div className="snap-x snap-mandatory overflow-x-auto overflow-y-hidden h-full scrollbar-thin flex bg-gradient-to-br from-blue-50 to-blue-100">
+          // Horizontal scrolling for selected category's subcategories - Full screen
+          <div className="snap-x snap-mandatory overflow-x-auto overflow-y-hidden flex-1 scrollbar-thin flex bg-gradient-to-br from-blue-50 to-blue-100">
             {categoriesWithSubs.find(c => c.name === selectedCategory)?.subcategories.map((sub) => (
               <div
                 key={sub}
                 className="snap-start min-w-full h-full flex-shrink-0 flex flex-col items-center justify-center p-4 md:p-8"
               >
-                <div className="w-full max-w-2xl">
-                  <div className="bg-white p-6 md:p-12 rounded-lg shadow-xl border-2 border-blue-400 hover:border-blue-600 active:border-blue-700 transition-all">
-                    <p className="font-bold text-xl md:text-3xl text-gray-800 text-center">{sub}</p>
+                <div className="w-full max-w-4xl h-full flex items-center justify-center">
+                  <div className="bg-white p-8 md:p-16 rounded-2xl shadow-2xl border-4 border-blue-400 hover:border-blue-600 active:border-blue-700 transition-all w-full">
+                    <p className="font-bold text-3xl md:text-5xl lg:text-6xl text-gray-800 text-center">{sub}</p>
                   </div>
                 </div>
               </div>
