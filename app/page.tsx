@@ -58,6 +58,8 @@ export default function Home() {
   const [isFlipped, setIsFlipped] = useState(false)
   const [airControlActive, setAirControlActive] = useState(false)
   const [gestureStatus, setGestureStatus] = useState('')
+  const [handDetected, setHandDetected] = useState(false)
+  const [handConfidence, setHandConfidence] = useState(0)
   
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -208,6 +210,13 @@ export default function Home() {
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       const landmarks = results.multiHandLandmarks[0]
       
+      // Update hand detection status
+      setHandDetected(true)
+      
+      // Calculate hand confidence (based on landmark visibility)
+      const avgConfidence = landmarks.reduce((sum: number, lm: any) => sum + (lm.visibility || 1), 0) / landmarks.length
+      setHandConfidence(Math.round(avgConfidence * 100))
+      
       // Draw hand landmarks
       drawHandLandmarks(canvasCtx, landmarks)
       
@@ -219,6 +228,8 @@ export default function Home() {
         setGestureStatus('Hand detected! Move up/down to scroll')
       }
     } else {
+      setHandDetected(false)
+      setHandConfidence(0)
       lastHandYRef.current = null
       setGestureStatus('Air Control Active - Show your hand!')
     }
@@ -404,23 +415,74 @@ export default function Home() {
 
       {/* Camera Feed - Responsive for mobile */}
       {airControlActive && (
-        <div className="fixed bottom-2 right-2 md:bottom-4 md:right-4 z-50 border-2 md:border-4 border-green-500 rounded-lg overflow-hidden shadow-2xl">
-          <div className="relative">
-            <video
-              ref={videoRef}
-              className="hidden"
-              width="640"
-              height="480"
-            />
-            <canvas
-              ref={canvasRef}
-              className="block w-32 h-24 md:w-80 md:h-60"
-              width="320"
-              height="240"
-            />
-            <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-2 py-1 rounded">
-              LIVE
+        <div className="fixed bottom-2 right-2 md:bottom-4 md:right-4 z-50">
+          {/* Camera Preview */}
+          <div className="border-2 md:border-4 border-green-500 rounded-lg overflow-hidden shadow-2xl mb-2">
+            <div className="relative">
+              <video
+                ref={videoRef}
+                className="hidden"
+                width="640"
+                height="480"
+              />
+              <canvas
+                ref={canvasRef}
+                className="block w-32 h-24 md:w-80 md:h-60"
+                width="320"
+                height="240"
+              />
+              <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                LIVE
+              </div>
             </div>
+          </div>
+          
+          {/* Hand Detection Status Panel */}
+          <div className={`${
+            handDetected ? 'bg-green-500' : 'bg-red-500'
+          } text-white rounded-lg p-2 md:p-3 shadow-lg transition-all duration-300`}>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {handDetected ? (
+                  <>
+                    <svg className="w-4 h-4 md:w-5 md:h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
+                    </svg>
+                    <span className="text-xs md:text-sm font-bold">✓ Hand Detected</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                    </svg>
+                    <span className="text-xs md:text-sm font-bold">✗ No Hand</span>
+                  </>
+                )}
+              </div>
+              {handDetected && (
+                <div className="text-xs md:text-sm font-mono">
+                  {handConfidence}%
+                </div>
+              )}
+            </div>
+            
+            {/* Hand Quality Indicator */}
+            {handDetected && (
+              <div className="mt-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-white bg-opacity-30 rounded-full h-1.5 md:h-2">
+                    <div 
+                      className="bg-white rounded-full h-full transition-all duration-300"
+                      style={{ width: `${handConfidence}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="text-xs mt-1 opacity-90">
+                  {handConfidence > 80 ? 'Excellent' : handConfidence > 60 ? 'Good' : 'Fair'}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
