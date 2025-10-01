@@ -82,13 +82,15 @@ export default function Home() {
         console.log('Starting air control...')
         setGestureStatus('Requesting camera access...')
         
-        // Request camera access
+        // Request camera access - Mobile-friendly settings
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             facingMode: 'user',
-            width: 640,
-            height: 480
-          } 
+            width: { ideal: 640, max: 1280 },
+            height: { ideal: 480, max: 720 },
+            aspectRatio: 4/3
+          },
+          audio: false
         })
         
         console.log('Camera access granted')
@@ -111,7 +113,19 @@ export default function Home() {
       } catch (error: any) {
         console.error('Error accessing camera:', error)
         setGestureStatus(`Error: ${error.message || 'Camera access denied'}`)
-        alert(`Air Control Error: ${error.message || 'Camera access denied. Please allow camera permissions.'}`)
+        
+        let errorMessage = 'Air Control Error: '
+        if (error.name === 'NotAllowedError') {
+          errorMessage += 'Camera permission denied. Please allow camera access in your browser settings.'
+        } else if (error.name === 'NotFoundError') {
+          errorMessage += 'No camera found. Please check your device has a camera.'
+        } else if (error.name === 'NotReadableError') {
+          errorMessage += 'Camera is already in use by another app.'
+        } else {
+          errorMessage += error.message || 'Camera access failed. On mobile, ensure you\'re using HTTPS or localhost.'
+        }
+        
+        alert(errorMessage)
       }
     } else {
       // Stop camera and hand tracking
@@ -141,12 +155,15 @@ export default function Home() {
       })
 
       console.log('Setting Hands options...')
+      // Use lighter settings for mobile performance
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       hands.setOptions({
         maxNumHands: 1,
-        modelComplexity: 1,
+        modelComplexity: isMobile ? 0 : 1, // Lighter model for mobile
         minDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5
       })
+      console.log('Mobile device:', isMobile)
 
       console.log('Setting onResults callback...')
       hands.onResults(onHandResults)
@@ -370,14 +387,24 @@ export default function Home() {
 
       {/* Gesture Status */}
       {airControlActive && (
-        <div className="bg-green-100 text-green-800 py-2 px-4 text-center text-sm md:text-base font-semibold">
-          {gestureStatus}
+        <div className="bg-green-100 text-green-800 py-2 px-2 md:px-4 text-center text-xs md:text-sm font-semibold">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>{gestureStatus}</span>
+          </div>
         </div>
       )}
 
-      {/* Camera Feed (hidden but active) */}
+      {/* HTTPS Warning for production */}
+      {typeof window !== 'undefined' && window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && (
+        <div className="bg-yellow-100 text-yellow-800 py-2 px-4 text-center text-xs md:text-sm">
+          ⚠️ Camera requires HTTPS in production. Air Control may not work.
+        </div>
+      )}
+
+      {/* Camera Feed - Responsive for mobile */}
       {airControlActive && (
-        <div className="fixed bottom-4 right-4 z-50 border-4 border-green-500 rounded-lg overflow-hidden shadow-2xl">
+        <div className="fixed bottom-2 right-2 md:bottom-4 md:right-4 z-50 border-2 md:border-4 border-green-500 rounded-lg overflow-hidden shadow-2xl">
           <div className="relative">
             <video
               ref={videoRef}
@@ -387,10 +414,13 @@ export default function Home() {
             />
             <canvas
               ref={canvasRef}
-              className="block"
+              className="block w-32 h-24 md:w-80 md:h-60"
               width="320"
               height="240"
             />
+            <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-2 py-1 rounded">
+              LIVE
+            </div>
           </div>
         </div>
       )}
