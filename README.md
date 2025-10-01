@@ -1,13 +1,13 @@
-# Scripe Store - Hand Gesture Controlled Store App
+# Scripe Store - Modern Shopping App
 
-A Next.js store application with innovative hand gesture controls for touchless navigation.
+A Next.js store application with smooth scrolling and category browsing.
 
 ## 🌟 Features
 
 - **12 Product Categories** with subcategories
 - **Vertical Scrolling** - Snap scroll through categories
 - **Horizontal Subcategory Scroll** - Swipe through items
-- **Air Control** 🎯 - Navigate using hand gestures!
+- **Category Grid View** - See all categories at once
 - **Fully Responsive** - Works on mobile and desktop
 - **Modern UI** - Beautiful gradient design with Tailwind CSS
 
@@ -15,28 +15,11 @@ A Next.js store application with innovative hand gesture controls for touchless 
 
 Deploy to Vercel: **https://scripe.vercel.app**
 
-## 🎮 Air Control (Hand Gestures)
-
-Control the app without touching your screen!
-
-### How to Use:
-1. Click the **"Air Control"** button
-2. Allow camera access
-3. Show your hand to the camera
-4. **Move hand UP** → Scrolls DOWN (next category)
-5. **Move hand DOWN** → Scrolls UP (previous category)
-
-### Requirements:
-- Camera-enabled device
-- HTTPS connection (works on Vercel automatically)
-- Modern browser (Chrome, Safari, Edge, Firefox)
-
 ## 📦 Tech Stack
 
 - **Framework:** Next.js 14
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
-- **Hand Tracking:** MediaPipe Hands
 - **Deployment:** Vercel
 
 ## 🛠️ Local Development
@@ -149,42 +132,28 @@ npm run lint
 
 ## 📄 Documentation
 
-- [Air Control Guide](./AIR_CONTROL_README.md) - Detailed hand gesture documentation
 - [Next.js Docs](https://nextjs.org/docs)
 - [Vercel Docs](https://vercel.com/docs)
-- [MediaPipe Hands](https://google.github.io/mediapipe/solutions/hands.html)
+- [Tailwind CSS Docs](https://tailwindcss.com/docs)
 
 ## 🐛 Troubleshooting
-
-### Camera Not Working
-- Ensure you're on HTTPS (Vercel provides this automatically)
-- Check browser camera permissions
-- Try a different browser
-
-### Air Control Not Detecting Hand
-- Improve lighting
-- Move hand closer to camera
-- Show palm clearly to camera
-- Check browser console for errors
 
 ### Build Fails on Vercel
 - Check build logs in Vercel dashboard
 - Ensure all dependencies are in `package.json`
 - Test build locally: `npm run build`
 
-## 🔐 Privacy
-
-- Camera feed is processed locally on your device
-- No video or images are uploaded to any server
-- Hand tracking happens entirely in browser
-- No data collection
+### Scrolling Issues
+- Clear browser cache
+- Check if using a modern browser
+- Ensure JavaScript is enabled
 
 ## 📊 Performance
 
 - **First Load:** < 3s on 3G
-- **Hand Detection:** 30 FPS
 - **Lighthouse Score:** 90+
-- **Mobile Optimized:** Lighter AI model
+- **Mobile Optimized:** Responsive design
+- **Smooth Scrolling:** 60 FPS animations
 
 ## 🤝 Contributing
 
@@ -206,7 +175,6 @@ MIT License - feel free to use for your projects!
 
 ## 🙏 Acknowledgments
 
-- **MediaPipe** - Hand tracking technology
 - **Vercel** - Hosting and deployment
 - **Next.js** - React framework
 - **Tailwind CSS** - Styling framework
