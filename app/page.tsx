@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export default function Home() {
   const categoriesWithSubs = [
@@ -56,6 +56,16 @@ export default function Home() {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [isFlipped, setIsFlipped] = useState(false)
+  const [airControlActive, setAirControlActive] = useState(false)
+  const [gestureStatus, setGestureStatus] = useState('')
+  
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const handsRef = useRef<any>(null)
+  const cameraRef = useRef<any>(null)
+  const lastHandYRef = useRef<number | null>(null)
+  const gestureDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const selectCategory = (category: string) => {
     setSelectedCategory(category)
@@ -66,10 +76,224 @@ export default function Home() {
     setSelectedCategory(null)
   }
 
+  const toggleAirControl = async () => {
+    if (!airControlActive) {
+      try {
+        // Request camera access
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user' } 
+        })
+        
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+          
+          // Initialize MediaPipe Hands
+          await initializeHandTracking()
+          
+          setAirControlActive(true)
+          setGestureStatus('Air Control Active - Show your hand!')
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error)
+        setGestureStatus('Camera access denied')
+      }
+    } else {
+      // Stop camera and hand tracking
+      stopAirControl()
+    }
+  }
+
+  const initializeHandTracking = async () => {
+    if (typeof window === 'undefined') return
+
+    try {
+      const { Hands } = await import('@mediapipe/hands')
+      const { Camera } = await import('@mediapipe/camera_utils')
+
+      const hands = new Hands({
+        locateFile: (file) => {
+          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+        }
+      })
+
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+      })
+
+      hands.onResults(onHandResults)
+      handsRef.current = hands
+
+      if (videoRef.current) {
+        const camera = new Camera(videoRef.current, {
+          onFrame: async () => {
+            if (videoRef.current) {
+              await hands.send({ image: videoRef.current })
+            }
+          },
+          width: 640,
+          height: 480
+        })
+        
+        camera.start()
+        cameraRef.current = camera
+      }
+    } catch (error) {
+      console.error('Error initializing hand tracking:', error)
+      setGestureStatus('Hand tracking initialization failed')
+    }
+  }
+
+  const onHandResults = (results: any) => {
+    if (!canvasRef.current || !videoRef.current) return
+
+    const canvasCtx = canvasRef.current.getContext('2d')
+    if (!canvasCtx) return
+
+    // Clear canvas
+    canvasCtx.save()
+    canvasCtx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+    canvasCtx.drawImage(results.image, 0, 0, canvasRef.current.width, canvasRef.current.height)
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      const landmarks = results.multiHandLandmarks[0]
+      
+      // Draw hand landmarks
+      drawHandLandmarks(canvasCtx, landmarks)
+      
+      // Detect gestures (vertical swipe)
+      detectVerticalSwipe(landmarks)
+    } else {
+      lastHandYRef.current = null
+      setGestureStatus('Air Control Active - Show your hand!')
+    }
+
+    canvasCtx.restore()
+  }
+
+  const drawHandLandmarks = (ctx: CanvasRenderingContext2D, landmarks: any[]) => {
+    // Draw connections
+    const connections = [
+      [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
+      [0, 5], [5, 6], [6, 7], [7, 8], // Index
+      [0, 9], [9, 10], [10, 11], [11, 12], // Middle
+      [0, 13], [13, 14], [14, 15], [15, 16], // Ring
+      [0, 17], [17, 18], [18, 19], [19, 20], // Pinky
+      [5, 9], [9, 13], [13, 17] // Palm
+    ]
+
+    ctx.strokeStyle = '#00FF00'
+    ctx.lineWidth = 2
+    connections.forEach(([start, end]) => {
+      ctx.beginPath()
+      ctx.moveTo(landmarks[start].x * canvasRef.current!.width, landmarks[start].y * canvasRef.current!.height)
+      ctx.lineTo(landmarks[end].x * canvasRef.current!.width, landmarks[end].y * canvasRef.current!.height)
+      ctx.stroke()
+    })
+
+    // Draw points
+    ctx.fillStyle = '#FF0000'
+    landmarks.forEach((landmark: any) => {
+      ctx.beginPath()
+      ctx.arc(landmark.x * canvasRef.current!.width, landmark.y * canvasRef.current!.height, 5, 0, 2 * Math.PI)
+      ctx.fill()
+    })
+  }
+
+  const detectVerticalSwipe = (landmarks: any[]) => {
+    // Use the middle finger tip (landmark 12) or wrist (landmark 0) for tracking
+    const wrist = landmarks[0]
+    const currentY = wrist.y
+
+    if (lastHandYRef.current !== null) {
+      const deltaY = currentY - lastHandYRef.current
+      const threshold = 0.05 // Sensitivity threshold
+
+      if (Math.abs(deltaY) > threshold) {
+        // Clear previous debounce
+        if (gestureDebounceRef.current) {
+          clearTimeout(gestureDebounceRef.current)
+        }
+
+        // Debounce gesture detection
+        gestureDebounceRef.current = setTimeout(() => {
+          if (deltaY < -threshold) {
+            // Hand moved up -> scroll down (next category)
+            handleSwipeDown()
+          } else if (deltaY > threshold) {
+            // Hand moved down -> scroll up (previous category)
+            handleSwipeUp()
+          }
+        }, 300)
+      }
+    }
+
+    lastHandYRef.current = currentY
+  }
+
+  const handleSwipeUp = () => {
+    setGestureStatus('👆 Swipe Up Detected!')
+    if (scrollContainerRef.current) {
+      const currentScroll = scrollContainerRef.current.scrollTop
+      const containerHeight = scrollContainerRef.current.clientHeight
+      scrollContainerRef.current.scrollTo({
+        top: currentScroll - containerHeight,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  const handleSwipeDown = () => {
+    setGestureStatus('👇 Swipe Down Detected!')
+    if (scrollContainerRef.current) {
+      const currentScroll = scrollContainerRef.current.scrollTop
+      const containerHeight = scrollContainerRef.current.clientHeight
+      scrollContainerRef.current.scrollTo({
+        top: currentScroll + containerHeight,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  const stopAirControl = () => {
+    // Stop camera
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream
+      stream.getTracks().forEach(track => track.stop())
+      videoRef.current.srcObject = null
+    }
+
+    // Stop camera instance
+    if (cameraRef.current) {
+      cameraRef.current.stop()
+      cameraRef.current = null
+    }
+
+    // Close hands
+    if (handsRef.current) {
+      handsRef.current.close()
+      handsRef.current = null
+    }
+
+    setAirControlActive(false)
+    setGestureStatus('')
+    lastHandYRef.current = null
+  }
+
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      stopAirControl()
+    }
+  }, [])
+
   return (
     <div className="flex flex-col h-screen w-full">
-      {/* Flip Button */}
-      <div className="flex justify-center items-center py-3 md:py-4 bg-gray-100 border-b-2 border-gray-300">
+      {/* Control Buttons */}
+      <div className="flex justify-center items-center gap-3 py-3 md:py-4 bg-gray-100 border-b-2 border-gray-300">
         <button
           onClick={toggleFlip}
           className="px-4 md:px-6 py-2 md:py-3 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white text-sm md:text-base font-semibold rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2"
@@ -79,7 +303,48 @@ export default function Home() {
           </svg>
           {isFlipped ? 'Show Products' : 'Show Categories'}
         </button>
+
+        <button
+          onClick={toggleAirControl}
+          className={`px-4 md:px-6 py-2 md:py-3 ${
+            airControlActive 
+              ? 'bg-green-500 hover:bg-green-600 active:bg-green-700' 
+              : 'bg-purple-500 hover:bg-purple-600 active:bg-purple-700'
+          } text-white text-sm md:text-base font-semibold rounded-lg shadow-lg transition-all duration-300 flex items-center gap-2`}
+        >
+          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+          </svg>
+          {airControlActive ? 'Stop Air Control' : 'Air Control'}
+        </button>
       </div>
+
+      {/* Gesture Status */}
+      {airControlActive && (
+        <div className="bg-green-100 text-green-800 py-2 px-4 text-center text-sm md:text-base font-semibold">
+          {gestureStatus}
+        </div>
+      )}
+
+      {/* Camera Feed (hidden but active) */}
+      {airControlActive && (
+        <div className="fixed bottom-4 right-4 z-50 border-4 border-green-500 rounded-lg overflow-hidden shadow-2xl">
+          <div className="relative">
+            <video
+              ref={videoRef}
+              className="hidden"
+              width="640"
+              height="480"
+            />
+            <canvas
+              ref={canvasRef}
+              className="block"
+              width="320"
+              height="240"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Main Content - Single Section */}
       <div className="w-full flex-1 overflow-hidden flex flex-col">
@@ -124,7 +389,10 @@ export default function Home() {
           </div>
         ) : (
           // Vertical scrolling with all 12 categories
-          <div className="snap-y snap-mandatory overflow-y-auto overflow-x-hidden h-full scrollbar-thin">
+          <div 
+            ref={scrollContainerRef}
+            className="snap-y snap-mandatory overflow-y-auto overflow-x-hidden h-full scrollbar-thin"
+          >
             {categoriesWithSubs.map((category) => (
               <div
                 key={category.name}
