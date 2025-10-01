@@ -54,9 +54,6 @@ export default function Home() {
     }
   ]
 
-  const leftCategories = categoriesWithSubs.slice(0, 6)
-  const rightCategories = categoriesWithSubs.slice(6, 12)
-
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [isFlipped, setIsFlipped] = useState(false)
 
@@ -84,147 +81,73 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Main Content - Two Perfect Halves */}
-      <div className="w-full flex-1 flex flex-col md:flex-row overflow-hidden">
-        {/* LEFT SECTION - With Vertical Scrolling */}
-        <div className="w-full md:w-1/2 h-1/2 md:h-full border-b-2 md:border-b-0 md:border-r-2 border-gray-200 flex flex-col">
-          {selectedCategory && !isFlipped && (
-            <div className="bg-blue-500 text-white py-2 md:py-3 px-4 md:px-6 text-center w-full z-10 flex-shrink-0">
-              <h2 className="text-base md:text-lg font-semibold">{selectedCategory}</h2>
-            </div>
-          )}
-          {/* Conditional Scrollable Container */}
-          {selectedCategory ? (
-            // Horizontal scrolling for selected category's subcategories
-            <div className="snap-x snap-mandatory overflow-x-auto overflow-y-hidden h-full scrollbar-thin flex bg-gradient-to-br from-blue-50 to-blue-100">
-              {categoriesWithSubs.find(c => c.name === selectedCategory)?.subcategories.map((sub) => (
-                <div
-                  key={sub}
-                  className="snap-start min-w-full h-full flex-shrink-0 flex flex-col items-center justify-center p-8"
-                >
-                  <div className="w-full max-w-2xl">
-                    <div className="bg-white p-6 md:p-12 rounded-lg shadow-xl border-2 border-blue-400 hover:border-blue-600 transition-all">
-                      <p className="font-bold text-xl md:text-3xl text-gray-800 text-center">{sub}</p>
-                    </div>
+      {/* Main Content - Single Section */}
+      <div className="w-full flex-1 overflow-hidden">
+        {selectedCategory && !isFlipped && (
+          <div className="bg-blue-500 text-white py-2 md:py-3 px-4 md:px-6 text-center w-full z-10">
+            <h2 className="text-base md:text-lg font-semibold">{selectedCategory}</h2>
+          </div>
+        )}
+        
+        {/* Conditional Scrollable Container */}
+        {selectedCategory ? (
+          // Horizontal scrolling for selected category's subcategories
+          <div className="snap-x snap-mandatory overflow-x-auto overflow-y-hidden h-full scrollbar-thin flex bg-gradient-to-br from-blue-50 to-blue-100">
+            {categoriesWithSubs.find(c => c.name === selectedCategory)?.subcategories.map((sub) => (
+              <div
+                key={sub}
+                className="snap-start min-w-full h-full flex-shrink-0 flex flex-col items-center justify-center p-4 md:p-8"
+              >
+                <div className="w-full max-w-2xl">
+                  <div className="bg-white p-6 md:p-12 rounded-lg shadow-xl border-2 border-blue-400 hover:border-blue-600 active:border-blue-700 transition-all">
+                    <p className="font-bold text-xl md:text-3xl text-gray-800 text-center">{sub}</p>
                   </div>
-                  <p className="text-gray-600 text-center mt-6">Section 1</p>
                 </div>
-              ))}
-            </div>
-          ) : isFlipped ? (
-            // Show all 6 category names at once
-            <div className="h-full bg-gradient-to-br from-blue-50 to-blue-100 p-6 overflow-y-auto">
-              <h3 className="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 md:mb-6">Categories 1-6</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                {leftCategories.map((category) => (
-                  <div
-                    key={category.name}
-                    onClick={() => selectCategory(category.name)}
-                    className="bg-white p-4 md:p-6 rounded-lg shadow-md hover:shadow-xl active:shadow-2xl transition-all cursor-pointer border-2 border-blue-300 hover:border-blue-500 active:border-blue-600"
-                  >
-                    <p className="font-bold text-base md:text-lg text-gray-800 text-center">{category.name}</p>
-                  </div>
-                ))}
               </div>
-            </div>
-          ) : (
-            // Vertical scrolling when no category is selected
-            <div className="snap-y snap-mandatory overflow-y-auto overflow-x-hidden h-full scrollbar-thin">
-              {leftCategories.map((category) => (
+            ))}
+          </div>
+        ) : isFlipped ? (
+          // Show all 12 category names at once in a grid
+          <div className="h-full bg-gradient-to-br from-blue-50 to-blue-100 p-4 md:p-6 overflow-y-auto">
+            <h3 className="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 md:mb-6">All Categories</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 max-w-6xl mx-auto">
+              {categoriesWithSubs.map((category) => (
                 <div
                   key={category.name}
-                  className="snap-start h-screen w-full bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center border-b-4 border-blue-200 p-8"
+                  onClick={() => selectCategory(category.name)}
+                  className="bg-white p-4 md:p-6 rounded-lg shadow-md hover:shadow-xl active:shadow-2xl transition-all cursor-pointer border-2 border-blue-300 hover:border-blue-500 active:border-blue-600"
                 >
-                  <h4 className="font-bold text-2xl md:text-4xl text-gray-800 text-center mb-4 md:mb-8">{category.name}</h4>
-                  {/* Subcategories horizontal snap scroll */}
-                  <div className="w-full max-w-4xl snap-x snap-mandatory overflow-x-auto scrollbar-thin flex">
-                    {category.subcategories.map((sub) => (
-                      <div
-                        key={sub}
-                        className="snap-start min-w-full flex-shrink-0 px-4"
-                      >
-                        <div className="bg-white p-4 md:p-8 rounded-lg shadow-lg border-2 border-blue-300 hover:border-blue-500 transition-all">
-                          <p className="font-bold text-lg md:text-2xl text-gray-800 text-center">{sub}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-gray-600 text-center mt-4">Section 1</p>
+                  <p className="font-bold text-sm md:text-base text-gray-800 text-center">{category.name}</p>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* RIGHT SECTION - Static (No Vertical Scrolling) */}
-        <div className="w-full md:w-1/2 h-1/2 md:h-full flex flex-col">
-          {selectedCategory && !isFlipped && (
-            <div className="bg-blue-500 text-white py-2 md:py-3 px-4 md:px-6 text-center w-full z-10 flex-shrink-0">
-              <h2 className="text-base md:text-lg font-semibold">{selectedCategory}</h2>
-            </div>
-          )}
-          {/* Conditional Scrollable Container */}
-          {selectedCategory ? (
-            // Horizontal scrolling for selected category's subcategories
-            <div className="snap-x snap-mandatory overflow-x-auto overflow-y-hidden h-full scrollbar-thin flex bg-gradient-to-br from-green-50 to-green-100">
-              {categoriesWithSubs.find(c => c.name === selectedCategory)?.subcategories.map((sub) => (
-                <div
-                  key={sub}
-                  className="snap-start min-w-full h-full flex-shrink-0 flex flex-col items-center justify-center p-8"
-                >
-                  <div className="w-full max-w-2xl">
-                    <div className="bg-white p-12 rounded-lg shadow-xl border-2 border-green-400 hover:border-green-600 transition-all">
-                      <p className="font-bold text-3xl text-gray-800 text-center">{sub}</p>
+          </div>
+        ) : (
+          // Vertical scrolling with all 12 categories
+          <div className="snap-y snap-mandatory overflow-y-auto overflow-x-hidden h-full scrollbar-thin">
+            {categoriesWithSubs.map((category) => (
+              <div
+                key={category.name}
+                className="snap-start h-screen w-full bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col items-center justify-center border-b-4 border-blue-200 p-4 md:p-8"
+              >
+                <h4 className="font-bold text-2xl md:text-4xl text-gray-800 text-center mb-4 md:mb-8">{category.name}</h4>
+                {/* Subcategories horizontal snap scroll */}
+                <div className="w-full max-w-4xl snap-x snap-mandatory overflow-x-auto scrollbar-thin flex">
+                  {category.subcategories.map((sub) => (
+                    <div
+                      key={sub}
+                      className="snap-start min-w-full flex-shrink-0 px-4"
+                    >
+                      <div className="bg-white p-4 md:p-8 rounded-lg shadow-lg border-2 border-blue-300 hover:border-blue-500 active:border-blue-600 transition-all">
+                        <p className="font-bold text-lg md:text-2xl text-gray-800 text-center">{sub}</p>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-gray-600 text-center mt-6">Section 2</p>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : isFlipped ? (
-            // Show all 6 category names at once
-            <div className="h-full bg-gradient-to-br from-green-50 to-green-100 p-6 overflow-y-auto">
-              <h3 className="text-xl md:text-2xl font-bold text-gray-800 text-center mb-4 md:mb-6">Categories 7-12</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                {rightCategories.map((category) => (
-                  <div
-                    key={category.name}
-                    onClick={() => selectCategory(category.name)}
-                    className="bg-white p-4 md:p-6 rounded-lg shadow-md hover:shadow-xl active:shadow-2xl transition-all cursor-pointer border-2 border-green-300 hover:border-green-500 active:border-green-600"
-                  >
-                    <p className="font-bold text-base md:text-lg text-gray-800 text-center">{category.name}</p>
-                  </div>
-                ))}
               </div>
-            </div>
-          ) : (
-            // Vertical scrolling for right section with its own categories
-            <div className="snap-y snap-mandatory overflow-y-auto overflow-x-hidden h-full scrollbar-thin">
-              {rightCategories.map((category) => (
-                <div
-                  key={category.name}
-                  className="snap-start h-screen w-full bg-gradient-to-br from-green-50 to-green-100 flex flex-col items-center justify-center border-b-4 border-green-200 p-8"
-                >
-                  <h4 className="font-bold text-2xl md:text-4xl text-gray-800 text-center mb-4 md:mb-8">{category.name}</h4>
-                  {/* Subcategories horizontal snap scroll */}
-                  <div className="w-full max-w-4xl snap-x snap-mandatory overflow-x-auto scrollbar-thin flex">
-                    {category.subcategories.map((sub) => (
-                      <div
-                        key={sub}
-                        className="snap-start min-w-full flex-shrink-0 px-4"
-                      >
-                        <div className="bg-white p-8 rounded-lg shadow-lg border-2 border-green-300 hover:border-green-500 transition-all">
-                          <p className="font-bold text-2xl text-gray-800 text-center">{sub}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="text-gray-600 text-center mt-4">Section 2</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -259,4 +182,3 @@ export default function Home() {
     </div>
   )
 }
-
