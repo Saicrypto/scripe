@@ -79,24 +79,39 @@ export default function Home() {
   const toggleAirControl = async () => {
     if (!airControlActive) {
       try {
+        console.log('Starting air control...')
+        setGestureStatus('Requesting camera access...')
+        
         // Request camera access
         const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'user' } 
+          video: { 
+            facingMode: 'user',
+            width: 640,
+            height: 480
+          } 
         })
+        
+        console.log('Camera access granted')
+        setGestureStatus('Camera access granted, initializing...')
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           await videoRef.current.play()
+          
+          console.log('Video playing')
+          setGestureStatus('Video playing, loading hand tracking...')
           
           // Initialize MediaPipe Hands
           await initializeHandTracking()
           
           setAirControlActive(true)
           setGestureStatus('Air Control Active - Show your hand!')
+          console.log('Air control fully activated')
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error accessing camera:', error)
-        setGestureStatus('Camera access denied')
+        setGestureStatus(`Error: ${error.message || 'Camera access denied'}`)
+        alert(`Air Control Error: ${error.message || 'Camera access denied. Please allow camera permissions.'}`)
       }
     } else {
       // Stop camera and hand tracking
@@ -105,45 +120,60 @@ export default function Home() {
   }
 
   const initializeHandTracking = async () => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined') {
+      console.log('Window is undefined, skipping hand tracking')
+      return
+    }
 
     try {
+      console.log('Loading MediaPipe Hands library...')
       const { Hands } = await import('@mediapipe/hands')
       const { Camera } = await import('@mediapipe/camera_utils')
+      console.log('MediaPipe libraries loaded successfully')
 
+      console.log('Creating Hands instance...')
       const hands = new Hands({
         locateFile: (file) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          const url = `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+          console.log('Loading file:', url)
+          return url
         }
       })
 
+      console.log('Setting Hands options...')
       hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
-        minDetectionConfidence: 0.7,
-        minTrackingConfidence: 0.7
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
       })
 
+      console.log('Setting onResults callback...')
       hands.onResults(onHandResults)
       handsRef.current = hands
 
       if (videoRef.current) {
+        console.log('Creating Camera instance...')
         const camera = new Camera(videoRef.current, {
           onFrame: async () => {
-            if (videoRef.current) {
-              await hands.send({ image: videoRef.current })
+            if (videoRef.current && handsRef.current) {
+              await handsRef.current.send({ image: videoRef.current })
             }
           },
           width: 640,
           height: 480
         })
         
+        console.log('Starting camera...')
         camera.start()
         cameraRef.current = camera
+        console.log('Hand tracking fully initialized')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error initializing hand tracking:', error)
-      setGestureStatus('Hand tracking initialization failed')
+      console.error('Error details:', error.message, error.stack)
+      setGestureStatus(`Hand tracking failed: ${error.message}`)
+      alert(`Hand tracking initialization failed: ${error.message}`)
     }
   }
 
@@ -166,6 +196,11 @@ export default function Home() {
       
       // Detect gestures (vertical swipe)
       detectVerticalSwipe(landmarks)
+      
+      // Show hand detected status
+      if (gestureStatus === 'Air Control Active - Show your hand!') {
+        setGestureStatus('Hand detected! Move up/down to scroll')
+      }
     } else {
       lastHandYRef.current = null
       setGestureStatus('Air Control Active - Show your hand!')
@@ -212,7 +247,11 @@ export default function Home() {
       const deltaY = currentY - lastHandYRef.current
       const threshold = 0.05 // Sensitivity threshold
 
+      console.log('Hand Y:', currentY.toFixed(3), 'Delta:', deltaY.toFixed(3))
+
       if (Math.abs(deltaY) > threshold) {
+        console.log('Gesture detected! Delta:', deltaY)
+        
         // Clear previous debounce
         if (gestureDebounceRef.current) {
           clearTimeout(gestureDebounceRef.current)
@@ -222,9 +261,11 @@ export default function Home() {
         gestureDebounceRef.current = setTimeout(() => {
           if (deltaY < -threshold) {
             // Hand moved up -> scroll down (next category)
+            console.log('Swipe DOWN gesture')
             handleSwipeDown()
           } else if (deltaY > threshold) {
             // Hand moved down -> scroll up (previous category)
+            console.log('Swipe UP gesture')
             handleSwipeUp()
           }
         }, 300)
@@ -235,26 +276,34 @@ export default function Home() {
   }
 
   const handleSwipeUp = () => {
+    console.log('handleSwipeUp called')
     setGestureStatus('👆 Swipe Up Detected!')
     if (scrollContainerRef.current) {
       const currentScroll = scrollContainerRef.current.scrollTop
       const containerHeight = scrollContainerRef.current.clientHeight
+      console.log('Scrolling up from', currentScroll, 'by', containerHeight)
       scrollContainerRef.current.scrollTo({
         top: currentScroll - containerHeight,
         behavior: 'smooth'
       })
+    } else {
+      console.log('scrollContainerRef is null')
     }
   }
 
   const handleSwipeDown = () => {
+    console.log('handleSwipeDown called')
     setGestureStatus('👇 Swipe Down Detected!')
     if (scrollContainerRef.current) {
       const currentScroll = scrollContainerRef.current.scrollTop
       const containerHeight = scrollContainerRef.current.clientHeight
+      console.log('Scrolling down from', currentScroll, 'by', containerHeight)
       scrollContainerRef.current.scrollTo({
         top: currentScroll + containerHeight,
         behavior: 'smooth'
       })
+    } else {
+      console.log('scrollContainerRef is null')
     }
   }
 
